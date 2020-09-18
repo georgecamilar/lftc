@@ -1,0 +1,5 @@
+identifier
+constants
+keyWords int
+operators
+separators
