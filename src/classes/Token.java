@@ -5,9 +5,13 @@ public class Token {
     public String data;
 
 
-
     public Token(TokenType tokenType, String data) {
         this.data = data;
         this.type = tokenType;
+    }
+
+    @Override
+    public String toString() {
+        return data;
     }
 }

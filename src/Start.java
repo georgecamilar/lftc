@@ -11,7 +11,7 @@ public class Start {
 
         Lexer lexer = new Lexer("source.c");
 
-        lexer.tokenize();
+        //lexer.tokenize();
 
     }
 }

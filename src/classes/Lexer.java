@@ -1,47 +1,45 @@
 package classes;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Lexer {
 
-    private List<String> programTextLines;
-    private Map<String, List<String>> tokensMap;
+    private final List<String> programTextLines;
+    private final Map<TokenType, List<Token>> tokensMap;
+    private final List<TokenType> tokenTypes;
+    private final List<String> others;
 
+    /**
+     * @param filePath
+     */
     public Lexer(String filePath) {
         this.programTextLines = fileReader(filePath);
-
         tokensMap = new LinkedHashMap<>();
+        others = new ArrayList<>();
 
-        tokensMap.put("identifier", new ArrayList<>());
-        tokensMap.put("keyword", new ArrayList<>());
-        tokensMap.put("operator", new ArrayList<>());
+
+        // initialize token type list to iterate from
+        // rather than if else structure
+        tokenTypes = Arrays.asList(TokenType.values());
+        tokenize();
     }
 
     private List<String> fileReader(String filename) {
-
-        System.out.println("________________________________");
-        System.out.println("________This is the file________");
-        System.out.println("________________________________");
         List<String> fileLines = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+//                System.out.println(line);
                 fileLines.add(line);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        System.out.println("________________________________");
-        System.out.println("________________________________");
         return fileLines;
     }
 
@@ -53,27 +51,51 @@ public class Lexer {
         for (String line : this.programTextLines) {
             //this removes all the separators
             String[] fields = line.split(TokenType.SEPARATOR.pattern);
-            //removing whitespaces and
+
             for (int i = 0; i < fields.length; ++i) {
                 fields[i] = fields[i].trim();
+                match(fields[i]);
             }
-
-            //check for token types in the TokenType enum
-            for (String field : fields) {
-                if (field.matches(TokenType.IDENTIFIER.toString())) {
-                    tokensMap.get("identifier").add(field);
-                } else if (field.matches(TokenType.KEYWORDS.toString())) {
-                    tokensMap.get("keyword").add(field);
-                } else if (field.matches(TokenType.OPERATOR.toString())) {
-                    tokensMap.get("operator").add(field);
-                }
-            }
-
-            for (String word : fields) {
-                System.out.println(word);
-            }
-
         }
-        System.out.println("[INFO]Token Output: " + tokensMap);
+        printTokenMap();
+    }
+
+    private void addToken(TokenType type, String tokenData) {
+        tokensMap.computeIfAbsent(type, k -> new ArrayList<>());
+        tokensMap.get(type).add(new Token(type, tokenData));
+    }
+
+    private void match(String field) {
+        for (TokenType type : this.tokenTypes) {
+            field = stringMatcher(type, field);
+        }
+
+        if (field.length() > 0)
+            this.others.add(field);
+    }
+
+    /**
+     * @param type Token type to identify from the line
+     * @param line The line taken from the source file
+     * @return The line without the tokens from the TokenType
+     * Observation: The tokens found(if there are any) will be added to the tokensMap
+     */
+    private String stringMatcher(TokenType type, String line) {
+        Pattern pattern = Pattern.compile(type.pattern);
+        Matcher matcher = pattern.matcher(line);
+
+        if (matcher.find()) {
+            addToken(type, line.substring(0, matcher.end()));
+            return line.substring(matcher.end() - 1, line.length() - 1);
+        } else {
+            return line;
+        }
+    }
+
+    private void printTokenMap() {
+        for (TokenType tokenType : tokensMap.keySet()) {
+            System.out.printf("Token Type: %s -> %s\n", tokenType, tokensMap.get(tokenType));
+        }
+        System.out.printf("Non Tokens: %s", others);
     }
 }
