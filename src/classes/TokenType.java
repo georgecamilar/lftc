@@ -14,7 +14,7 @@ public enum TokenType {
     public final String pattern;
     public final String name;
 
-    private TokenType(String name, String pattern) {
+    TokenType(String name, String pattern) {
         this.pattern = pattern;
         this.name = name;
     }
@@ -22,9 +22,5 @@ public enum TokenType {
     @Override
     public String toString() {
         return name;
-    }
-
-    public String getPattern(){
-        return pattern;
     }
 }
