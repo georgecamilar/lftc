@@ -84,16 +84,16 @@ public class Lexer {
         Matcher matcher = pattern.matcher(line);
 
         if (matcher.find()) {
-            if(type.equals(TokenType.BRACKETS)){
+            if (type.equals(TokenType.BRACKETS)) {
 
-            }
-            else{
-            addToken(type, line.substring(matcher.start(), matcher.end()));
-            return line.replace(line.substring(matcher.start(), matcher.end()), "");
+            } else {
+                addToken(type, line.substring(matcher.start(), matcher.end()));
+                return line.replace(line.substring(matcher.start(), matcher.end()), "");
             }
         } else {
             return line;
         }
+        return line;
     }
 
     private void printTokenMap() {
