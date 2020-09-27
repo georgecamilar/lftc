@@ -26,7 +26,6 @@ public class Lexer {
         // initialize token type list to iterate from
         // rather than if else structure
         tokenTypes = Arrays.asList(TokenType.values());
-        tokenize();
     }
 
     private List<String> fileReader(String filename) {
@@ -85,8 +84,13 @@ public class Lexer {
         Matcher matcher = pattern.matcher(line);
 
         if (matcher.find()) {
-            addToken(type, line.substring(0, matcher.end()));
-            return line.substring(matcher.end() - 1, line.length() - 1);
+            if(type.equals(TokenType.BRACKETS)){
+
+            }
+            else{
+            addToken(type, line.substring(matcher.start(), matcher.end()));
+            return line.replace(line.substring(matcher.start(), matcher.end()), "");
+            }
         } else {
             return line;
         }
