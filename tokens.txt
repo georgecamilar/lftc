@@ -1,5 +1,19 @@
-identifier
-constants
-keyWords int
-operators
-separators
+id:1
+const:2
+(:3
+):4
+int:5
+float:6
+char:7
+{:8
+}:9
+;:10
+while:11
+=:12
++:13
+-:14
+*:15
+/:16
+%:17
+return:18
+,:19

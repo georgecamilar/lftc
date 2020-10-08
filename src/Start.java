@@ -1,8 +1,14 @@
-import classes.Lexer;
+import common.Lexer;
+
+import java.util.Map;
 
 public class Start {
     public static void main(String[] args) {
-        Lexer lexer = new Lexer("source.c");
-       lexer.tokenize();
+        /*
+        Map<String, Integer> tokens = Lexer.readFromFile("tokens.txt");
+        System.out.println(tokens);
+        */
+        Lexer lexer = new Lexer();
+        lexer.parseSourceFile("source.c");
     }
 }
