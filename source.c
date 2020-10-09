@@ -1,12 +1,9 @@
-
-
-int main(){
-	int a, b;
-	a = 4;
-	b = 5;
-	c = a + b;
-
-	return 0;
+int cmmdc ( int a , int b ) {
+int r ;
+while ( b ) {
+r = a % b ;
+a = b ;
+b = r ;
 }
-
-
+return a ;
+}
