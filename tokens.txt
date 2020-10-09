@@ -17,3 +17,13 @@ while:11
 %:17
 return:18
 ,:19
+#:20
+cin:21
+cout:22
+using:23
+namespace:24
+std:25
+<<:26
+>>:27
+if:28
+else:29

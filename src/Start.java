@@ -9,6 +9,10 @@ public class Start {
         System.out.println(tokens);
         */
         Lexer lexer = new Lexer();
-        lexer.parseSourceFile("source.c");
+        lexer.parseSourceFile("source2.c");
+
+        System.out.println("Atoms: " + lexer.getAtoms());
+        System.out.println("Identifiers: " + lexer.getIdentifiersTable());
+        System.out.println("Constants: " + lexer.getConstantsTable());
     }
 }
