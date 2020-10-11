@@ -1,0 +1,2 @@
+"Introducetinumerele_a_si_b:" -> 1
+"Cmmdc=" -> 2

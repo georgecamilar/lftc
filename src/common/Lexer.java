@@ -1,8 +1,6 @@
 package common;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,25 +31,10 @@ public class Lexer {
             String line;
             boolean ok;
             while ((line = reader.readLine()) != null) {
-                List<String> fields = new ArrayList<>();
+
                 String[] chStrings = line.split(" ");
-                for (int i = 0; i < chStrings.length; i++) {
-                    if (chStrings[i].equals("")) {
-                        continue;
-                    }
-                    StringBuilder chField = new StringBuilder(chStrings[i]);
-                    if (chStrings[i].charAt(0) == '"' && chStrings[i].charAt(chField.length()-1) != '"') {
-                        i++;
-                        while (!chStrings[i].contains("\"")) {
-                            chField.append(chStrings[i]);
-                            i++;
-                        }
-                        chField.append(chStrings[i]);
-                        i++;
-                    }
-                    fields.add(chField.toString());
-                    System.out.println(fields);
-                }
+                List<String> fields = this.createAtomsListFromSource(chStrings);
+
                 for (String field : fields) {
                     ok = false;
                     if (field.equals(""))
@@ -72,27 +55,61 @@ public class Lexer {
                     }
                     // check if something has been added
                     // if not, then it is a constant or a identifier
-                    if (field.charAt(0) == '"' && field.charAt(field.length() - 1) == '"') {
-                        //this is a string constant
-                        constantsTable.put(field, constantCounterIndex);
-                        constantCounterIndex++;
-                        atoms.put(field, 2); // 2 is the code for the constants
-                    } else {
-                        //this is a identifier
-                        identifiersTable.put(field, identifierCounterIndex);
-                        identifierCounterIndex++;
-                        atoms.put(field, 1);
-                    }
-
-
+                    identifierOrConstant(field);
                 }
             }
-            System.out.println(this.atoms);
+//            System.out.println(this.atoms);
         } catch (IOException ex) {
             System.err.println(ex.getMessage());
         }
     }
 
+    private void identifierOrConstant(String field) {
+        if (field.charAt(0) == '"' && field.charAt(field.length() - 1) == '"') {
+            //this is a string constant
+            constantsTable.put(field, constantCounterIndex);
+            constantCounterIndex++;
+            atoms.put(field, 2); // 2 is the code for the constants
+        } else {
+            //this is a identifier
+            identifiersTable.put(field, identifierCounterIndex);
+            identifierCounterIndex++;
+            atoms.put(field, 1);
+        }
+    }
+
+    private List<String> createAtomsListFromSource(String[] chStrings) {
+        List<String> fields = new ArrayList<>();
+        for (int i = 0; i < chStrings.length; i++) {
+            if (chStrings[i].equals("")) {
+                continue;
+            }
+            StringBuilder chField = new StringBuilder(chStrings[i]);
+            if (chStrings[i].charAt(0) == '"' && chStrings[i].charAt(chField.length() - 1) != '"') {
+                i++;
+                while (!chStrings[i].contains("\"")) {
+                    chField.append(chStrings[i]);
+                    i++;
+                }
+                chField.append(chStrings[i]);
+                i++;
+            }
+            fields.add(chField.toString());
+//            System.out.println(fields);
+        }
+        return fields;
+    }
+
+
+    public void writeToFile(String filename, Map<String, Integer> map) {
+        try (PrintWriter writer = new PrintWriter(filename, "UTF-8")) {
+            for (String key : map.keySet()) {
+                writer.write(key + " -> " + map.get(key) + "\n");
+            }
+        } catch (FileNotFoundException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * @param filename the file with the default categories
