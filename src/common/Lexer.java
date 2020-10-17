@@ -12,6 +12,7 @@ public class Lexer {
     private final Map<String, Integer> atoms;
     private final Map<String, Integer> constantsTable;
     private final Map<String, Integer> identifiersTable;
+    private final List<String> fip;
     private int atomCounterIndex;
     private int constantCounterIndex;
     private int identifierCounterIndex;
@@ -20,6 +21,7 @@ public class Lexer {
         tokenValues = Lexer.readFromFile("tokens.txt");
         atoms = new LinkedHashMap<>();
         constantsTable = new LinkedHashMap<>();
+        fip = new ArrayList<>();
         identifiersTable = new LinkedHashMap<>();
         atomCounterIndex = 3; // 1 is for identifiers and 2 is for constants, so start from 3 and go up
         constantCounterIndex = 1;
@@ -39,6 +41,7 @@ public class Lexer {
                     ok = false;
                     if (field.equals(""))
                         continue;
+                    fip.add(field);
                     for (String keyword : this.tokenValues.keySet()) {
                         if (field.equals(keyword)) {
                             if (this.atoms.get(field) != null) {
@@ -139,6 +142,10 @@ public class Lexer {
 
     public Map<String, Integer> getConstantsTable() {
         return constantsTable;
+    }
+
+    public List<String> getFip() {
+        return fip;
     }
 
     public Map<String, Integer> getIdentifiersTable() {

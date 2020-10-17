@@ -1,3 +1,4 @@
+#include <iostream>
 int cmmdc ( int a , int b ) {
 int r ;
 while ( b ) {

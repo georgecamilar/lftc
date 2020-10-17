@@ -1,6 +1,8 @@
 import common.Lexer;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 public class Start {
 
@@ -17,14 +19,14 @@ public class Start {
     }
 
     public static void main(String[] args) {
-        /*
-        Map<String, Integer> tokens = Lexer.readFromFile("tokens.txt");
-        System.out.println(tokens);
-        */
         Lexer lexer = new Lexer();
         lexer.parseSourceFile("source2.c");
 
-        System.out.println("Atoms: ");
+        for(String field: lexer.getFip()){
+            System.out.println(field + "  |  "  + lexer.getAtoms().get(field));
+        }
+
+        /*System.out.println("Atoms: ");
         printMap(lexer.getAtoms());
         System.out.println("\n\nIdentifiers: \n\n");
         printMap(lexer.getIdentifiersTable());
@@ -32,6 +34,6 @@ public class Start {
         printMap(lexer.getConstantsTable());
         lexer.writeToFile("atoms.txt", lexer.getAtoms());
         lexer.writeToFile("identifiers.txt", lexer.getIdentifiersTable());
-        lexer.writeToFile("constants.txt", lexer.getConstantsTable());
+        lexer.writeToFile("constants.txt", lexer.getConstantsTable());*/
     }
 }

@@ -33,3 +33,6 @@ else:29
 >=:33
 <=:34
 endl:35
+include:36
+iostream:37
+main:38
