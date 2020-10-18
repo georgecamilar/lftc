@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.Map;
 
 public class Lexer {
+    private static final int TS_COUNTER = 50;
 
     private final Map<String, Integer> tokenValues;
-    private final Map<String, Integer> atoms;
+    private final Map<String, LexicalAtom> atoms;
     private final Map<String, Integer> constantsTable;
     private final Map<String, Integer> identifiersTable;
-    private final List<String> fip;
-    private int atomCounterIndex;
     private int constantCounterIndex;
     private int identifierCounterIndex;
 
@@ -21,9 +20,7 @@ public class Lexer {
         tokenValues = Lexer.readFromFile("tokens.txt");
         atoms = new LinkedHashMap<>();
         constantsTable = new LinkedHashMap<>();
-        fip = new ArrayList<>();
         identifiersTable = new LinkedHashMap<>();
-        atomCounterIndex = 3; // 1 is for identifiers and 2 is for constants, so start from 3 and go up
         constantCounterIndex = 1;
         identifierCounterIndex = 1;
     }
@@ -41,14 +38,12 @@ public class Lexer {
                     ok = false;
                     if (field.equals(""))
                         continue;
-                    fip.add(field);
                     for (String keyword : this.tokenValues.keySet()) {
                         if (field.equals(keyword)) {
                             if (this.atoms.get(field) != null) {
                                 this.atoms.put(field, this.atoms.get(field));
                             } else {
-                                atoms.put(field, atomCounterIndex);
-                                atomCounterIndex++;
+                                atoms.put(field, new LexicalAtom(this.tokenValues.get(field)));
                             }
                             ok = true;
                         }
@@ -70,14 +65,15 @@ public class Lexer {
     private void identifierOrConstant(String field) {
         if (field.charAt(0) == '"' && field.charAt(field.length() - 1) == '"') {
             //this is a string constant
-            constantsTable.put(field, constantCounterIndex);
+            constantsTable.put(field, constantCounterIndex + TS_COUNTER);
+            // 2 is the code for the constants
+            atoms.put(field, new LexicalAtom(2, constantCounterIndex + TS_COUNTER, "CONSTANT"));
             constantCounterIndex++;
-            atoms.put(field, 2); // 2 is the code for the constants
         } else {
             //this is a identifier
-            identifiersTable.put(field, identifierCounterIndex);
+            identifiersTable.put(field, identifierCounterIndex + TS_COUNTER);
+            atoms.put(field, new LexicalAtom(1, identifierCounterIndex + TS_COUNTER, "IDENTIFIER"));
             identifierCounterIndex++;
-            atoms.put(field, 1);
         }
     }
 
@@ -98,7 +94,6 @@ public class Lexer {
                 i++;
             }
             fields.add(chField.toString());
-//            System.out.println(fields);
         }
         return fields;
     }
@@ -136,7 +131,7 @@ public class Lexer {
      * Those are getters and setters
      */
 
-    public Map<String, Integer> getAtoms() {
+    public Map<String, LexicalAtom> getAtoms() {
         return atoms;
     }
 
@@ -144,8 +139,8 @@ public class Lexer {
         return constantsTable;
     }
 
-    public List<String> getFip() {
-        return fip;
+    public Map<String, Integer> getTokenValues() {
+        return tokenValues;
     }
 
     public Map<String, Integer> getIdentifiersTable() {
