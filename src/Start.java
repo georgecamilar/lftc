@@ -17,6 +17,7 @@ public class Start {
 
 
         printMap(lexer.getAtoms());
+        lexer.writeToFile("atoms.txt", lexer.getAtoms());
 
     }
 }

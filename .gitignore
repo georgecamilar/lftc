@@ -1,5 +1,9 @@
+#Ignore random Intellij created files
 .idea
-
 *.iml
 
+#Ignore text document changes
+*.txt
+
+#Ignore the compilation directory
 out

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 public class Lexer {
     private static final int TS_COUNTER = 50;
@@ -15,6 +16,9 @@ public class Lexer {
     private final Map<String, Integer> identifiersTable;
     private int constantCounterIndex;
     private int identifierCounterIndex;
+    private final List<String> errors;
+    private int counter = 0;
+
 
     public Lexer() {
         tokenValues = Lexer.readFromFile("tokens.txt");
@@ -23,6 +27,7 @@ public class Lexer {
         identifiersTable = new LinkedHashMap<>();
         constantCounterIndex = 1;
         identifierCounterIndex = 1;
+        errors = new ArrayList<>();
     }
 
     public void parseSourceFile(String filename) {
@@ -30,8 +35,12 @@ public class Lexer {
             String line;
             boolean ok;
             while ((line = reader.readLine()) != null) {
+                if (line.equals(""))
+                    continue;
 
+                evaluate(line);
                 String[] chStrings = line.split(" ");
+
                 List<String> fields = this.createAtomsListFromSource(chStrings);
 
                 for (String field : fields) {
@@ -51,15 +60,35 @@ public class Lexer {
                     if (ok) {
                         continue;
                     }
-                    // check if something has been added
-                    // if not, then it is a constant or a identifier
                     identifierOrConstant(field);
                 }
             }
-//            System.out.println(this.atoms);
         } catch (IOException ex) {
             System.err.println(ex.getMessage());
         }
+    }
+
+
+    public void evaluate(String line) {
+        String[] fields = line.split(" ");
+        if (fields[0].equals("if") || fields[0].equals("while")) {
+            boolean status = isCondition(
+                    IntStream.range(1, fields.length - 1)
+                            .mapToObj(i -> fields[i])
+                            .toArray(String[]::new)
+            );
+        }
+    }
+
+    private boolean isCondition(String[] fields) {
+        int i = 1;
+        while (i < fields.length && !fields[i].equals(")")) {
+            i++;
+        }
+        if (i == fields.length) {
+            return false;
+        }
+        return true;
     }
 
     private void identifierOrConstant(String field) {
@@ -99,7 +128,7 @@ public class Lexer {
     }
 
 
-    public void writeToFile(String filename, Map<String, Integer> map) {
+    public void writeToFile(String filename, Map<String, LexicalAtom> map) {
         try (PrintWriter writer = new PrintWriter(filename, "UTF-8")) {
             for (String key : map.keySet()) {
                 writer.write(key + " -> " + map.get(key) + "\n");

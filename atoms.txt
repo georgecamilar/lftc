@@ -1,24 +1,32 @@
-int -> 3
-a -> 1
-, -> 4
-b -> 1
-; -> 5
-main -> 1
-( -> 6
-) -> 7
-{ -> 8
-cout -> 9
-<< -> 10
-"Introducetinumerele_a_si_b:" -> 2
-endl -> 11
-cin -> 12
->> -> 13
-while -> 14
-!= -> 15
-if -> 16
-> -> 17
-= -> 18
-- -> 19
-else -> 20
-} -> 21
-"Cmmdc=" -> 2
+# -> 20 | - 
+include -> 36 | - 
+< -> 32 | - 
+iostream -> 37 | - 
+> -> 31 | - 
+using -> 23 | - 
+namespace -> 24 | - 
+std -> 25 | - 
+; -> 10 | - 
+int -> 5 | - 
+a -> 1 | IDENTIFIER : 65
+, -> 19 | - 
+b -> 1 | IDENTIFIER : 63
+main -> 38 | - 
+( -> 3 | - 
+) -> 4 | - 
+{ -> 8 | - 
+cout -> 22 | - 
+<< -> 26 | - 
+"Introducetinumerele_a_si_b:" -> 2 | CONSTANT : 51
+endl -> 35 | - 
+cin -> 21 | - 
+>> -> 27 | - 
+while -> 11 | - 
+!= -> 30 | - 
+b) -> 1 | IDENTIFIER : 56
+if -> 28 | - 
+= -> 12 | - 
+- -> 14 | - 
+else -> 29 | - 
+} -> 9 | - 
+"Cmmdc=" -> 2 | CONSTANT : 52
