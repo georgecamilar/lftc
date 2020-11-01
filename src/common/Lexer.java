@@ -1,178 +1,180 @@
 package common;
 
 import java.io.*;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
+import java.util.Random;
+import java.util.regex.Pattern;
 
 public class Lexer {
-    private static final int TS_COUNTER = 50;
-
-    private final Map<String, Integer> tokenValues;
-    private final Map<String, LexicalAtom> atoms;
-    private final Map<String, Integer> constantsTable;
-    private final Map<String, Integer> identifiersTable;
-    private int constantCounterIndex;
-    private int identifierCounterIndex;
-    private final List<String> errors;
-    private int counter = 0;
+    private final Map<String, Integer> languageTokens;
+    private final Map<String, Token> atomsTokens;
+    private final Map<String, Token> identifierTokens;
+    private final Map<String, Token> constantTokens;
 
 
     public Lexer() {
-        tokenValues = Lexer.readFromFile("tokens.txt");
-        atoms = new LinkedHashMap<>();
-        constantsTable = new LinkedHashMap<>();
-        identifiersTable = new LinkedHashMap<>();
-        constantCounterIndex = 1;
-        identifierCounterIndex = 1;
-        errors = new ArrayList<>();
+        atomsTokens = new LinkedHashMap<>();
+        identifierTokens = new LinkedHashMap<>();
+        constantTokens = new LinkedHashMap<>();
+
+
+        languageTokens = readTokens("tokens.txt");
     }
 
-    public void parseSourceFile(String filename) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-            String line;
-            boolean ok;
-            while ((line = reader.readLine()) != null) {
-                if (line.equals(""))
-                    continue;
+    public void parse() throws Exception {
+        List<String> sourceFileLines = Files.readAllLines(Paths.get("source2.c"));
+        int lineCounter = 0;
+        for (String line : sourceFileLines) {
+            if (line.equals(""))
+                continue;
 
-                evaluate(line);
-                String[] chStrings = line.split(" ");
+            String[] fields = line.split(" ");
+            lineCounter++;
+            for (int i = 0; i < fields.length; i++) {
+                if (languageTokens.containsKey(fields[i])) {
+                    atomsTokens.put(fields[i], new Token(languageTokens.get(fields[i])));
+                } else {
+                    //identifier or constant
+                    if (identifierTokens.containsKey(fields[i])) {
+                        atomsTokens.put(fields[i], new Token(1, generateValue(identifierTokens)));
+                    } else if (constantTokens.containsKey(fields[i])) {
+                        atomsTokens.put(fields[i], constantTokens.get(fields[i]));
+                    } else {
+                        //not detected yet;
 
-                List<String> fields = this.createAtomsListFromSource(chStrings);
-
-                for (String field : fields) {
-                    ok = false;
-                    if (field.equals(""))
-                        continue;
-                    for (String keyword : this.tokenValues.keySet()) {
-                        if (field.equals(keyword)) {
-                            if (this.atoms.get(field) != null) {
-                                this.atoms.put(field, this.atoms.get(field));
-                            } else {
-                                atoms.put(field, new LexicalAtom(this.tokenValues.get(field)));
+                        if (i > 0 && (fields[i - 1].equalsIgnoreCase("int") || fields[i - 1].equalsIgnoreCase("bool"))) {
+                            if (fields[i].length() > 256) {
+                                throw new Exception("Syntax error at line " + lineCounter);
                             }
-                            ok = true;
+
+                            identifierTokens.put(fields[i], new Token(1, generateValue(identifierTokens)));
+                            //sort it
+
+                        } else {
+                            if (isConstant(fields[i])) {
+                                int endOfStringIndex;
+                                if ((endOfStringIndex = isStringConstant(fields, i)) != i) {
+
+                                    int currentFieldIndex = i;
+                                    StringBuilder builder = new StringBuilder();
+
+                                    while (currentFieldIndex <= endOfStringIndex) {
+                                        builder.append(fields[currentFieldIndex]).append(" ");
+                                        currentFieldIndex++;
+                                    }
+
+                                    String result = builder.toString();
+                                    constantTokens.put(result, new Token(2, generateValue(constantTokens)));
+
+                                    i = currentFieldIndex;
+                                }
+                            } else {
+                                throw new Exception("Syntax error at line " + lineCounter);
+                            }
                         }
                     }
-                    if (ok) {
-                        continue;
-                    }
-                    identifierOrConstant(field);
                 }
             }
-        } catch (IOException ex) {
-            System.err.println(ex.getMessage());
         }
+
+        this.writeToFile(this.atomsTokens, "output/atoms.txt");
     }
 
 
-    public void evaluate(String line) {
-        String[] fields = line.split(" ");
-        if (fields[0].equals("if") || fields[0].equals("while")) {
-            boolean status = isCondition(
-                    IntStream.range(1, fields.length - 1)
-                            .mapToObj(i -> fields[i])
-                            .toArray(String[]::new)
-            );
-        }
+    private boolean isConditionalStatement(String[] fields) {
+        return (fields[0].equals("while") || fields[0].equals("if")) &&
+                fields[1].equals("(") &&
+                identifierExists(fields[2]) &&
+                identifierExists(fields[4]) &&
+                isSpecialSign(fields[3]) &&
+                fields[5].equals(")");
     }
 
-    private boolean isCondition(String[] fields) {
-        int i = 1;
-        while (i < fields.length && !fields[i].equals(")")) {
-            i++;
-        }
-        if (i == fields.length) {
-            return false;
-        }
-        return true;
+    private boolean isSpecialSign(String atom) {
+        return identifierTokens.containsKey(atom);
     }
 
-    private void identifierOrConstant(String field) {
-        if (field.charAt(0) == '"' && field.charAt(field.length() - 1) == '"') {
-            //this is a string constant
-            constantsTable.put(field, constantCounterIndex + TS_COUNTER);
-            // 2 is the code for the constants
-            atoms.put(field, new LexicalAtom(2, constantCounterIndex + TS_COUNTER, "CONSTANT"));
-            constantCounterIndex++;
-        } else {
-            //this is a identifier
-            identifiersTable.put(field, identifierCounterIndex + TS_COUNTER);
-            atoms.put(field, new LexicalAtom(1, identifierCounterIndex + TS_COUNTER, "IDENTIFIER"));
-            identifierCounterIndex++;
-        }
+    private boolean identifierExists(String variable) {
+        return identifierTokens.containsKey(variable);
     }
 
-    private List<String> createAtomsListFromSource(String[] chStrings) {
-        List<String> fields = new ArrayList<>();
-        for (int i = 0; i < chStrings.length; i++) {
-            if (chStrings[i].equals("")) {
-                continue;
+    private int isStringConstant(String[] fields, Integer i) {
+        boolean stringStatus = fields[i].contains("\"");
+        if (!stringStatus) {
+            return i;
+        }
+        int counter = i;
+        if (fields[counter].lastIndexOf("\"") == fields[counter].length() - 1) {
+            return counter;
+        }
+
+        while (stringStatus) {
+            if (fields[counter].lastIndexOf("\"") == fields[counter].length() - 1) {
+                stringStatus = false;
+            } else {
+                counter++;
             }
-            StringBuilder chField = new StringBuilder(chStrings[i]);
-            if (chStrings[i].charAt(0) == '"' && chStrings[i].charAt(chField.length() - 1) != '"') {
-                i++;
-                while (!chStrings[i].contains("\"")) {
-                    chField.append(chStrings[i]);
-                    i++;
-                }
-                chField.append(chStrings[i]);
-                i++;
-            }
-            fields.add(chField.toString());
         }
-        return fields;
+
+        return counter;
     }
 
-
-    public void writeToFile(String filename, Map<String, LexicalAtom> map) {
-        try (PrintWriter writer = new PrintWriter(filename, "UTF-8")) {
-            for (String key : map.keySet()) {
-                writer.write(key + " -> " + map.get(key) + "\n");
-            }
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+    private boolean isConstant(String constant) {
+        return constant.contains("\"");
     }
 
-    /**
-     * @param filename the file with the default categories
-     * @return Map with all the categories
-     */
-    public static Map<String, Integer> readFromFile(String filename) {
+    private Integer generateValue(Map<String, Token> map) {
+        int number = new Random().nextInt(100);
+        while (map.containsValue(number)) {
+            number = new Random().nextInt();
+        }
+
+        return number;
+    }
+
+    private Map<String, Integer> readTokens(String filename) {
         Map<String, Integer> result = new LinkedHashMap<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filename))) {
             String line;
-            while ((line = reader.readLine()) != null) {
+
+            while ((line = bufferedReader.readLine()) != null) {
+                if (line.equals(""))
+                    continue;
                 String[] fields = line.split(":");
                 result.put(fields[0], Integer.parseInt(fields[1]));
             }
-        } catch (IOException ex) {
-            System.err.println(ex.getMessage());
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return result;
     }
 
-    /***
-     * Those are getters and setters
-     */
 
-    public Map<String, LexicalAtom> getAtoms() {
-        return atoms;
+    public void writeToFile(Map<String, Token> map, String filename) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+            for (String key : map.keySet()) {
+                writer.write(key + " -> " + map.get(key).getLanguageTokenIndex() + " - " + map.get(key).getIdentifierOrConstantTableIndex());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public Map<String, Integer> getConstantsTable() {
-        return constantsTable;
+    public Map<String, Token> getAtomsTokens() {
+        return atomsTokens;
     }
 
-    public Map<String, Integer> getTokenValues() {
-        return tokenValues;
+    public Map<String, Token> getIdentifierTokens() {
+        return identifierTokens;
     }
 
-    public Map<String, Integer> getIdentifiersTable() {
-        return identifiersTable;
+    public Map<String, Token> getConstantTokens() {
+        return constantTokens;
     }
 }
