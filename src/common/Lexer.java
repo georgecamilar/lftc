@@ -3,14 +3,11 @@ package common;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.regex.Pattern;
+import java.util.*;
 
 public class Lexer {
     private final Map<String, Integer> languageTokens;
+    private final List<String> fip;
     private final Map<String, Token> atomsTokens;
     private final Map<String, Token> identifierTokens;
     private final Map<String, Token> constantTokens;
@@ -18,46 +15,63 @@ public class Lexer {
 
     public Lexer() {
         atomsTokens = new LinkedHashMap<>();
-        identifierTokens = new LinkedHashMap<>();
-        constantTokens = new LinkedHashMap<>();
+        identifierTokens = new TreeMap<>();
+        constantTokens = new TreeMap<>();
 
+        fip = new ArrayList<>();
 
         languageTokens = readTokens("tokens.txt");
+    }
+
+    public List<String> getFip() {
+        return fip;
     }
 
     public void parse() throws Exception {
         List<String> sourceFileLines = Files.readAllLines(Paths.get("source2.c"));
         int lineCounter = 0;
         for (String line : sourceFileLines) {
+            lineCounter++;
             if (line.equals(""))
                 continue;
 
             String[] fields = line.split(" ");
-            lineCounter++;
+
+            if (fields[0].equals("while") || fields[0].equals("if")) {
+                if (!isConditionalStatement(fields)) {
+                    throw new Exception("Error at line conditional statement " + lineCounter);
+                }
+            }
+
+
             for (int i = 0; i < fields.length; i++) {
                 if (languageTokens.containsKey(fields[i])) {
                     atomsTokens.put(fields[i], new Token(languageTokens.get(fields[i])));
+                    fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
                 } else {
                     //identifier or constant
                     if (identifierTokens.containsKey(fields[i])) {
-                        atomsTokens.put(fields[i], new Token(1, generateValue(identifierTokens)));
+                        atomsTokens.put(fields[i], atomsTokens.get(fields[i]));
+                        fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
                     } else if (constantTokens.containsKey(fields[i])) {
                         atomsTokens.put(fields[i], constantTokens.get(fields[i]));
+                        fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
                     } else {
                         //not detected yet;
-
                         if (i > 0 && (fields[i - 1].equalsIgnoreCase("int") || fields[i - 1].equalsIgnoreCase("bool"))) {
-                            if (fields[i].length() > 256) {
+                            if (fields[i].length() > 250) {
                                 throw new Exception("Syntax error at line " + lineCounter);
                             }
 
-                            identifierTokens.put(fields[i], new Token(1, generateValue(identifierTokens)));
+                            if (!isAssignment(fields)) {
+                                identifierTokens.put(fields[i], new Token(1, generateValue(identifierTokens)));
+                            }
                             //sort it
-
+                            fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
                         } else {
                             if (isConstant(fields[i])) {
                                 int endOfStringIndex;
-                                if ((endOfStringIndex = isStringConstant(fields, i)) != i) {
+                                if ((endOfStringIndex = isStringConstant(fields, i)) != -1) {
 
                                     int currentFieldIndex = i;
                                     StringBuilder builder = new StringBuilder();
@@ -68,9 +82,12 @@ public class Lexer {
                                     }
 
                                     String result = builder.toString();
-                                    constantTokens.put(result, new Token(2, generateValue(constantTokens)));
+                                    int index = generateValue(constantTokens);
+                                    constantTokens.put(result, new Token(2, index));
+                                    atomsTokens.put(result, new Token(2, index));
 
                                     i = currentFieldIndex;
+                                    fip.add(result + " " + atomsTokens.get(result).toString());
                                 }
                             } else {
                                 throw new Exception("Syntax error at line " + lineCounter);
@@ -84,6 +101,31 @@ public class Lexer {
         this.writeToFile(this.atomsTokens, "output/atoms.txt");
     }
 
+    private boolean isAssignment(String[] fields) {
+        int counter = 0;
+        if (fields[0].equals("int") || fields[0].equals("bool")) {
+            counter = 1;
+            int index = generateValue(identifierTokens);
+            identifierTokens.put(fields[1], new Token(1, index));
+            atomsTokens.put(fields[1], new Token(1, index));
+        }
+        if (fields.length == 3) {
+            return true;
+        }
+
+        return this.identifierExists(fields[counter]) && fields[counter + 1].equals("=") && isNumber(fields[counter + 2]) ||
+                this.identifierExists(fields[counter]);
+    }
+
+
+    private boolean isNumber(String potentialNumber) {
+        try {
+            Double.parseDouble(potentialNumber);
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
 
     private boolean isConditionalStatement(String[] fields) {
         return (fields[0].equals("while") || fields[0].equals("if")) &&
@@ -95,7 +137,7 @@ public class Lexer {
     }
 
     private boolean isSpecialSign(String atom) {
-        return identifierTokens.containsKey(atom);
+        return languageTokens.containsKey(atom);
     }
 
     private boolean identifierExists(String variable) {
@@ -105,7 +147,7 @@ public class Lexer {
     private int isStringConstant(String[] fields, Integer i) {
         boolean stringStatus = fields[i].contains("\"");
         if (!stringStatus) {
-            return i;
+            return -1;
         }
         int counter = i;
         if (fields[counter].lastIndexOf("\"") == fields[counter].length() - 1) {
@@ -156,9 +198,23 @@ public class Lexer {
 
 
     public void writeToFile(Map<String, Token> map, String filename) {
+        map.keySet().stream().sorted();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
             for (String key : map.keySet()) {
                 writer.write(key + " -> " + map.get(key).getLanguageTokenIndex() + " - " + map.get(key).getIdentifierOrConstantTableIndex());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    public void writeFip(String filename) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+            for (String field : fip) {
+                writer.write(field);
                 writer.newLine();
             }
         } catch (IOException e) {
@@ -177,4 +233,5 @@ public class Lexer {
     public Map<String, Token> getConstantTokens() {
         return constantTokens;
     }
+
 }

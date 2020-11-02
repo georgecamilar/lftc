@@ -1,5 +1,4 @@
 import common.Lexer;
-import common.LexicalAtom;
 import common.Token;
 
 import java.util.Map;
@@ -16,11 +15,10 @@ public class Start {
         Lexer lexer = new Lexer();
         lexer.parse();
 
-        System.out.println("-----Atoms------");
-        printMap(lexer.getAtomsTokens());
-        System.out.println("-----Constants------");
-        printMap(lexer.getConstantTokens());
-        System.out.println("-----Identifiers------");
-        printMap(lexer.getIdentifierTokens());
+
+        lexer.writeToFile(lexer.getIdentifierTokens(), "output/ts_identifier.txt");
+        lexer.writeToFile(lexer.getConstantTokens(), "output/ts_constants.txt");
+
+        lexer.writeFip("output/fip.txt");
     }
 }

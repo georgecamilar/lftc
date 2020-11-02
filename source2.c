@@ -1,5 +1,6 @@
 # include < iostream >
 using namespace std ;
+int c ;
 int a ;
 int b ;
 int main ( )
