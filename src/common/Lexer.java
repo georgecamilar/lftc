@@ -1,23 +1,28 @@
 package common;
 
+import structure.BinarySearchTree;
+import structure.Node;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Lexer {
     private final Map<String, Integer> languageTokens;
     private final List<String> fip;
     private final Map<String, Token> atomsTokens;
-    private final Map<String, Token> identifierTokens;
-    private final Map<String, Token> constantTokens;
-
+    BinarySearchTree identifiers;
+    BinarySearchTree constants;
+    private int idIndex = 100;
+    private int constIndex = 100;
 
     public Lexer() {
         atomsTokens = new LinkedHashMap<>();
-        identifierTokens = new TreeMap<>();
-        constantTokens = new TreeMap<>();
-
+        identifiers = new BinarySearchTree();
+        constants = new BinarySearchTree();
         fip = new ArrayList<>();
 
         languageTokens = readTokens("tokens.txt");
@@ -25,6 +30,14 @@ public class Lexer {
 
     public List<String> getFip() {
         return fip;
+    }
+
+    public BinarySearchTree getIdentifiers() {
+        return identifiers;
+    }
+
+    public BinarySearchTree getConstants() {
+        return constants;
     }
 
     public void parse() throws Exception {
@@ -36,112 +49,65 @@ public class Lexer {
                 continue;
 
             String[] fields = line.split(" ");
-
-            if (fields[0].equals("while") || fields[0].equals("if")) {
-                if (!isConditionalStatement(fields)) {
-                    throw new Exception("Error at line conditional statement " + lineCounter);
-                }
-            }
-
-
             for (int i = 0; i < fields.length; i++) {
+                Token token;
                 if (languageTokens.containsKey(fields[i])) {
                     atomsTokens.put(fields[i], new Token(languageTokens.get(fields[i])));
-                    fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
+                    fip.add(fields[i] + " - " + languageTokens.get(fields[i]));
+                } else if ((token = this.fipContainsIdentifierOrConstant(fields[i])) != null) {
+                    fip.add(fields[i] + " - " + token);
+                } else if ((token = this.fipContainsIdentifierOrConstant(fields[i])) != null) {
+                    fip.add(fields[i] + " - " + token);
                 } else {
-                    //identifier or constant
-                    if (identifierTokens.containsKey(fields[i])) {
-                        atomsTokens.put(fields[i], atomsTokens.get(fields[i]));
-                        fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
-                    } else if (constantTokens.containsKey(fields[i])) {
-                        atomsTokens.put(fields[i], constantTokens.get(fields[i]));
-                        fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
+                    //constant or identifier not yet identified
+                    if (isIdentifier(fields[i])) {
+                        if (fields[i].length() > 250)
+                            throw new Exception("Error at line: " + lineCounter + " identifier size is too big");
+                        int index = idIndex;
+                        idIndex++;
+                        atomsTokens.put(fields[i], new Token(1, index));
+                        identifiers.add(fields[i], new Token(1, index));
+                        fip.add(fields[i] + " - " + this.fipContainsIdentifierOrConstant(fields[i]));
                     } else {
-                        //not detected yet;
-                        if (i > 0 && (fields[i - 1].equalsIgnoreCase("int") || fields[i - 1].equalsIgnoreCase("bool"))) {
-                            if (fields[i].length() > 250) {
-                                throw new Exception("Syntax error at line " + lineCounter);
-                            }
+                        //constant token
 
-                            if (!isAssignment(fields)) {
-                                identifierTokens.put(fields[i], new Token(1, generateValue(identifierTokens)));
-                            }
-                            //sort it
-                            fip.add(fields[i] + " " + atomsTokens.get(fields[i]).toString());
-                        } else {
-                            if (isConstant(fields[i])) {
-                                int endOfStringIndex;
-                                if ((endOfStringIndex = isStringConstant(fields, i)) != -1) {
+                        if (isConstant(fields[i])) {
+                            //only constants are string constants
+                            int endOfStringIndex;
+                            if ((endOfStringIndex = isStringConstant(fields, i)) != -1) {
 
-                                    int currentFieldIndex = i;
-                                    StringBuilder builder = new StringBuilder();
+                                int currentFieldIndex = i;
+                                StringBuilder builder = new StringBuilder();
 
-                                    while (currentFieldIndex <= endOfStringIndex) {
-                                        builder.append(fields[currentFieldIndex]).append(" ");
-                                        currentFieldIndex++;
-                                    }
-
-                                    String result = builder.toString();
-                                    int index = generateValue(constantTokens);
-                                    constantTokens.put(result, new Token(2, index));
-                                    atomsTokens.put(result, new Token(2, index));
-
-                                    i = currentFieldIndex;
-                                    fip.add(result + " " + atomsTokens.get(result).toString());
+                                while (currentFieldIndex <= endOfStringIndex) {
+                                    builder.append(fields[currentFieldIndex]).append(" ");
+                                    currentFieldIndex++;
                                 }
-                            } else {
-                                throw new Exception("Syntax error at line " + lineCounter);
+
+                                String result = builder.toString();
+                                int index = constIndex;
+                                constIndex++;
+                                constants.add(result, new Token(2, index));
+                                atomsTokens.put(result, new Token(2, index));
+
+                                i = currentFieldIndex;
+                                fip.add(result + " " + this.fipContainsIdentifierOrConstant(fields[i]));
                             }
+                        } else {
+                            throw new Exception("Error at line: " + lineCounter);
                         }
                     }
                 }
             }
-        }
 
-        this.writeToFile(this.atomsTokens, "output/atoms.txt");
-    }
-
-    private boolean isAssignment(String[] fields) {
-        int counter = 0;
-        if (fields[0].equals("int") || fields[0].equals("bool")) {
-            counter = 1;
-            int index = generateValue(identifierTokens);
-            identifierTokens.put(fields[1], new Token(1, index));
-            atomsTokens.put(fields[1], new Token(1, index));
-        }
-        if (fields.length == 3) {
-            return true;
-        }
-
-        return this.identifierExists(fields[counter]) && fields[counter + 1].equals("=") && isNumber(fields[counter + 2]) ||
-                this.identifierExists(fields[counter]);
-    }
-
-
-    private boolean isNumber(String potentialNumber) {
-        try {
-            Double.parseDouble(potentialNumber);
-            return true;
-        } catch (Exception ex) {
-            return false;
         }
     }
 
-    private boolean isConditionalStatement(String[] fields) {
-        return (fields[0].equals("while") || fields[0].equals("if")) &&
-                fields[1].equals("(") &&
-                identifierExists(fields[2]) &&
-                identifierExists(fields[4]) &&
-                isSpecialSign(fields[3]) &&
-                fields[5].equals(")");
-    }
-
-    private boolean isSpecialSign(String atom) {
-        return languageTokens.containsKey(atom);
-    }
-
-    private boolean identifierExists(String variable) {
-        return identifierTokens.containsKey(variable);
+    public Token fipContainsIdentifierOrConstant(String value) {
+        if (this.atomsTokens.containsKey(value)) {
+            return atomsTokens.get(value);
+        }
+        return null;
     }
 
     private int isStringConstant(String[] fields, Integer i) {
@@ -165,18 +131,22 @@ public class Lexer {
         return counter;
     }
 
+    public void setIdIndex(int idIndex) {
+        this.idIndex = idIndex;
+    }
+
+    public void setConstIndex(int constIndex) {
+        this.constIndex = constIndex;
+    }
+
+    private boolean isIdentifier(String field) {
+        return field.matches(TokenRegex.IDENTIFIER.getPattern());
+    }
+
     private boolean isConstant(String constant) {
         return constant.contains("\"");
     }
 
-    private Integer generateValue(Map<String, Token> map) {
-        int number = new Random().nextInt(100);
-        while (map.containsValue(number)) {
-            number = new Random().nextInt();
-        }
-
-        return number;
-    }
 
     private Map<String, Integer> readTokens(String filename) {
         Map<String, Integer> result = new LinkedHashMap<>();
@@ -197,20 +167,6 @@ public class Lexer {
     }
 
 
-    public void writeToFile(Map<String, Token> map, String filename) {
-        map.keySet().stream().sorted();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
-            for (String key : map.keySet()) {
-                writer.write(key + " -> " + map.get(key).getLanguageTokenIndex() + " - " + map.get(key).getIdentifierOrConstantTableIndex());
-                writer.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-
     public void writeFip(String filename) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
             for (String field : fip) {
@@ -222,16 +178,5 @@ public class Lexer {
         }
     }
 
-    public Map<String, Token> getAtomsTokens() {
-        return atomsTokens;
-    }
-
-    public Map<String, Token> getIdentifierTokens() {
-        return identifierTokens;
-    }
-
-    public Map<String, Token> getConstantTokens() {
-        return constantTokens;
-    }
 
 }

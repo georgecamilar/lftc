@@ -2,13 +2,7 @@ package common;
 
 public enum TokenRegex {
     //type of instructions
-    ARRAY("int[]"),
-    EXPRESSION("ID | CONSTANT | EXPRESSION OPERATOR EXPRESSION"),
-    RELATION("(?:(\\!\\=|\\=\\=|\\>|\\<))"),
-    OPERATION("\\+|\\-|\\/|\\%"),
-    CONDITION(EXPRESSION.getPattern()),
-    IF("?:if( " + CONDITION.getPattern() + " )"),
-    
+    IDENTIFIER("^([_a-zA-Z])([_a-zA-Z0-9])*")
     ;
 
     private final String pattern;

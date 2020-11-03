@@ -15,10 +15,12 @@ public class Start {
         Lexer lexer = new Lexer();
         lexer.parse();
 
-
-        lexer.writeToFile(lexer.getIdentifierTokens(), "output/ts_identifier.txt");
-        lexer.writeToFile(lexer.getConstantTokens(), "output/ts_constants.txt");
-
         lexer.writeFip("output/fip.txt");
+
+        System.out.println("-------Identifiers-------");
+        lexer.getIdentifiers().leftRootRightPrint();
+
+        System.out.println("-------Constants-------");
+        lexer.getConstants().leftRootRightPrint();
     }
 }
