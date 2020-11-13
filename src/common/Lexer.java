@@ -179,4 +179,9 @@ public class Lexer {
     }
 
 
+    public void writeBstToFile(BinarySearchTree tree, String filename) {
+        tree.writeToFile(filename);
+    }
+
+
 }

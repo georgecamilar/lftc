@@ -5,12 +5,6 @@ import java.util.Map;
 
 public class Start {
 
-    public static void printMap(Map<String, Token> map) {
-        for (String key : map.keySet()) {
-            System.out.println("key : " + key + " value : " + map.get(key));
-        }
-    }
-
     public static void main(String[] args) throws Exception {
         Lexer lexer = new Lexer();
         lexer.parse();
@@ -19,8 +13,10 @@ public class Start {
 
         System.out.println("-------Identifiers-------");
         lexer.getIdentifiers().leftRootRightPrint();
+        lexer.writeBstToFile(lexer.getIdentifiers(), "output/ts_identifier.txt");
 
         System.out.println("-------Constants-------");
         lexer.getConstants().leftRootRightPrint();
+        lexer.writeBstToFile(lexer.getConstants(), "output/ts_constants.txt");
     }
 }
