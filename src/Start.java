@@ -1,7 +1,5 @@
 import common.Lexer;
-import common.Token;
 
-import java.util.Map;
 
 public class Start {
 
